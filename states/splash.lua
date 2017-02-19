@@ -1,17 +1,17 @@
 local lovesplashes = require("o-ten-one")
 local tween = require("tween") --linear 230
 
-local splash = lovesplashes( { background = {material.colors.background()}, fill = "lighten" } )
+local splash = lovesplashes( { background = {material.colors.background("dark")} } )
 
 local startfade = false
 local fade = {0}
-local fadeTween = tween.new(1,fade,{255},"inSine")
+local fadeTween = tween.new(1,fade,{255},"linear")
 
 function love.draw()
   splash:draw()
   
   if startfade then
-    local r, g, b = material.colors.background()
+    local r, g, b = material.colors.background("dark")
     love.graphics.setColor(r,g,b,fade[1])
     love.graphics.rectangle("fill",0,0,_Width,_Height)
   end

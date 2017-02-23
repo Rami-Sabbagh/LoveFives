@@ -3,7 +3,7 @@ _Width, _Height = love.graphics.getDimensions()
 
 local cb = {
 'update', 'draw', 'keypressed', 'keyreleased', 'mousepressed', 'mousemoved', 'mousereleased',
-'touchpressed', 'touchmoved', 'touchreleased'
+'touchpressed', 'touchmoved', 'touchreleased', 'resize'
 }
 
 function clearlove() --Clears love callbacks
@@ -13,5 +13,6 @@ function clearlove() --Clears love callbacks
 end
 
 function love.load()
-  assert(love.filesystem.load("/states/splash.lua"))()
+  clearlove()
+  assert(love.filesystem.load("/states/game.lua"))()--splash.lua"))()
 end

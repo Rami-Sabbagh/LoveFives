@@ -23,7 +23,7 @@ function love.update(dt)
   if startfade then
     if fadeTween:update(dt) then
       clearlove()
-      assert(love.filesystem.load("/states/selection.lua"))()
+      assert(love.filesystem.load("/states/game.lua"))()--selection.lua"))()
     end
   end
 end

@@ -116,6 +116,44 @@ function love.draw()
     end
   end
   
+  for x=0, dbw -1 do
+    for y=0, dbh -1 do
+      if dgdata[x+1][y+1].v and dgdata[x+1][y+1].h then
+        love.graphics.setLineWidth(dotCLineSize)
+        love.graphics.setColor(pcolors[dgdata[x+1][y+1].h])
+        love.graphics.line(dgx + dgs*x, dgy + dgs*y, dgx + dgs*x + dgs, dgy + dgs*y)
+        
+        love.graphics.circle("fill", dgx + dgs*x + dgs, dgy + dgs*y, dotsize)
+        
+        love.graphics.setLineWidth(dotCLineSize)
+        love.graphics.setColor(pcolors[dgdata[x+1][y+1].v])
+        love.graphics.line(dgx + dgs*x, dgy + dgs*y, dgx + dgs*x, dgy + dgs*y + dgs)
+        
+        love.graphics.circle("fill", dgx + dgs*x, dgy + dgs*y + dgs, dotsize)
+        
+        love.graphics.setColor(dgcolor)
+        love.graphics.circle("fill", dgx + dgs*x, dgy + dgs*y, dotsize)
+        
+      elseif dgdata[x+1][y+1].h then
+        love.graphics.setColor(pcolors[dgdata[x+1][y+1].h])
+        love.graphics.setLineWidth(dotCLineSize)
+        love.graphics.line(dgx + dgs*x, dgy + dgs*y, dgx + dgs*x + dgs, dgy + dgs*y)
+        
+        love.graphics.circle("fill", dgx + dgs*x + dgs, dgy + dgs*y, dotsize)
+        love.graphics.circle("fill", dgx + dgs*x, dgy + dgs*y, dotsize)
+        
+      elseif dgdata[x+1][y+1].v then
+        love.graphics.setColor(pcolors[dgdata[x+1][y+1].v])
+        love.graphics.setLineWidth(dotCLineSize)
+        love.graphics.line(dgx + dgs*x, dgy + dgs*y, dgx + dgs*x, dgy + dgs*y + dgs)
+        
+        love.graphics.circle("fill", dgx + dgs*x, dgy + dgs*y + dgs, dotsize)
+        love.graphics.circle("fill", dgx + dgs*x, dgy + dgs*y, dotsize)
+        
+      end
+    end
+  end
+  
   --Draw the current under creation line
   if dl then
     love.graphics.setColor(dl.col)
@@ -186,11 +224,42 @@ function love.mousereleased(x,y, b, istouch)
   if cx and dl then
     cx = math.min(math.max(dl.cx-1,cx),dl.cx+1)
     cy = math.min(math.max(dl.cy-1,cy),dl.cy+1)
+    if math.abs(dl.cx-cx) == math.abs(dl.cy-cy) then cy = dl.cy end
     local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
     dl.x2 = cpx
     dl.y2 = cpy
     if dl.cx == cx and dl.cy == cy then dl = nil return end --It's on the same dot
     --Do new game line here !
+    if dl.cy-cy == 0 then --It's horizental
+    
+      if dl.cx-cx > 0 then --To Left
+        if dgdata[cx][cy].h then dl = nil return end --Trying to override an existing line
+        dgdata[cx][cy].h = pturns[curturn]
+        
+      else --To Right
+        if dgdata[dl.cx][cy].h then dl = nil return end --Trying to override an existing line
+        dgdata[dl.cx][cy].h = pturns[curturn]
+        
+      end
+      
+    else --It's vertical
+    
+      if dl.cy-cy > 0 then --To Top
+        if dgdata[cx][cy].v then dl = nil return end --Trying to override an existing line
+        dgdata[cx][cy].v = pturns[curturn]
+        
+      else --To Bottom
+        if dgdata[cx][dl.cy].v then dl = nil return end --Trying to override an existing line
+        dgdata[cx][dl.cy].v = pturns[curturn]
+        
+      end
+      
+    end
+    
+    curturn = curturn+1
+    if curturn > #pturns then curturn = 1 end
+    gtt = pnames[pturns[curturn]].."'s Turn"
+    
     dl = nil
   elseif dl then
     dl = nil --Cancel

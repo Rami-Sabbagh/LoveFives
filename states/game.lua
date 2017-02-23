@@ -47,6 +47,9 @@ local dgdata = {} --DotsGridData
 for x=1,dbw do dgdata[x] = {} for y=1, dbh do dgdata[x][y] = {} end end --Build the data table
 local dgcolor = {material.colors.main("blue-grey")}
 local dotsize = gh/16
+local dotWidth = gh/24
+local dotLineSize = gh/12
+local dotCLineSize = gh/10
 local dotsgrid = {dgx - dgs/2, dgy - dgs/2, dgw+dgs,dgh+dgs, dbw, dbh}  --The grid table
 
 function love.resize(w,h)
@@ -70,12 +73,18 @@ function love.resize(w,h)
   end
   dgx, dgy = _Width/2 - dgw/2, gty + gh*2
   dotsize = gh/16
+  dotLineSize = gh/15
+  dotCLineSize = gh/14
   dotsgrid = {dgx - dgs/2, dgy - dgs/2, dgw+dgs,dgh+dgs, dbw, dbh}  --The grid table
 end
 
-local dl = {} --Drawing Line
+local dl --Drawing Line
 
-function whereInGrid(x,y, grid) --Grid X, Grid Y, Grid Width, Grid Height, NumOfCells in width, NumOfCells in height
+local function isInRect(x,y,rect)
+  if x >= rect[1] and y >= rect[2] and x <= rect[1]+rect[3]-1 and y <= rect[2]+rect[4]-1 then return true end return false
+end
+
+local function whereInGrid(x,y, grid) --Grid X, Grid Y, Grid Width, Grid Height, NumOfCells in width, NumOfCells in height
   local gx,gy,gw,gh,cw,ch = unpack(grid)
   
   if isInRect(x,y,{gx,gy,gw,gh}) then
@@ -97,11 +106,18 @@ function love.draw()
   
   --Draw the dots grid--
   love.graphics.setColor(dgcolor)
-  love.graphics.setPointSize(dotsize)
+  love.graphics.setLineWidth(dotWidth)
   for x=0, dbw -1 do
     for y=0, dbh -1 do
       love.graphics.circle("line", dgx + dgs*x, dgy + dgs*y, dotsize)
     end
+  end
+  
+  --Draw the current under creation line
+  if dl then
+    love.graphics.setColor(dl.col)
+    love.graphics.setLineWidth(dotLineSize)
+    love.graphics.line(dl.x1,dl.y1, dl.x2,dl.y2)
   end
 end
 
@@ -109,29 +125,60 @@ function love.update(dt)
   
 end
 
-function love.touchpressed(id,x,y,dx,dy,p)
+local tid --TouchID
 
+--Single touch to mouse connection
+function love.touchpressed(id,x,y,dx,dy,p)
+  if not tid then
+    tid = id
+    love.mousepressed(id, x,y, 1, false)
+  end
 end
 
 function love.touchmoved(id,x,y,dx,dy,p)
-
+  if tid and tid == id then
+    love.mousemoved(x,y,dx,dy)
+  end
 end
 
 function love.touchreleased(id,x,y,dx,dy,p)
-
+  if tid and tid == id then
+    love.mousereleased(x,y, 1, false)
+    tid = nil
+  end
 end
 
+--Mouse Code
 function love.mousepressed(x,y, b, istouch)
   if istouch then return end
-  love.touchpressed(0, x,y, 0,0, 1)
+  
+  local cx, cy = whereInGrid(x,y, dotsgrid)
+  if cx then
+    local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
+    dl = { x1=cpx, y1=cpy, x2=cpx, y2=cpy, col = pcolors[pturns[curturn]]}
+  end
 end
 
 function love.mousemoved(x,y, dx,dy, istouch)
   if istouch then return end
-  love.touchmoved(0, x,y, dx,dy, 1)
+  local cx, cy = whereInGrid(x,y, dotsgrid)
+  if cx and dl then
+    local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
+    dl.x2 = cpx
+    dl.y2 = cpy
+  elseif dl then
+    dl = nil --Cancel
+  end
 end
 
 function love.mousereleased(x,y, b, istouch)
   if istouch then return end
-  love.touchreleased(0, x,y, 0,0, 1)
+  local cx, cy = whereInGrid(x,y, dotsgrid)
+  if cx and dl then
+    --Do new game line here !
+    dl = nil
+  elseif dl then
+    dl = nil --Cancel
+    
+  end
 end

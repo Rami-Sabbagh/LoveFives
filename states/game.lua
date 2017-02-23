@@ -47,6 +47,7 @@ local dgdata = {} --DotsGridData
 for x=1,dbw do dgdata[x] = {} for y=1, dbh do dgdata[x][y] = {} end end --Build the data table
 local dgcolor = {material.colors.main("blue-grey")}
 local dotsize = gh/16
+local dotnewsize = gh/14
 local dotWidth = gh/24
 local dotLineSize = gh/12
 local dotCLineSize = gh/10
@@ -73,8 +74,10 @@ function love.resize(w,h)
   end
   dgx, dgy = _Width/2 - dgw/2, gty + gh*2
   dotsize = gh/16
-  dotLineSize = gh/15
-  dotCLineSize = gh/14
+  dotnewsize = gh/14
+  dotWidth = gh/24
+  dotLineSize = gh/12
+  dotCLineSize = gh/10
   dotsgrid = {dgx - dgs/2, dgy - dgs/2, dgw+dgs,dgh+dgs, dbw, dbh}  --The grid table
 end
 
@@ -118,6 +121,8 @@ function love.draw()
     love.graphics.setColor(dl.col)
     love.graphics.setLineWidth(dotLineSize)
     love.graphics.line(dl.x1,dl.y1, dl.x2,dl.y2)
+    love.graphics.circle("fill",dl.x1,dl.y1,dotnewsize)
+    love.graphics.circle("fill",dl.x2,dl.y2,dotnewsize)
   end
 end
 
@@ -155,7 +160,7 @@ function love.mousepressed(x,y, b, istouch)
   local cx, cy = whereInGrid(x,y, dotsgrid)
   if cx then
     local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
-    dl = { x1=cpx, y1=cpy, x2=cpx, y2=cpy, col = pcolors[pturns[curturn]]}
+    dl = { x1=cpx, y1=cpy, x2=cpx, y2=cpy, cx=cx, cy=cy, col = pcolors[pturns[curturn]]}
   end
 end
 
@@ -163,11 +168,15 @@ function love.mousemoved(x,y, dx,dy, istouch)
   if istouch then return end
   local cx, cy = whereInGrid(x,y, dotsgrid)
   if cx and dl then
+    cx = math.min(math.max(dl.cx-1,cx),dl.cx+1)
+    cy = math.min(math.max(dl.cy-1,cy),dl.cy+1)
+    if math.abs(dl.cx-cx) == math.abs(dl.cy-cy) then cy = dl.cy end
     local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
     dl.x2 = cpx
     dl.y2 = cpy
   elseif dl then
-    dl = nil --Cancel
+    --Hide
+    dl.x2, dl.y2 = dl.x1, dl.y1
   end
 end
 
@@ -175,10 +184,15 @@ function love.mousereleased(x,y, b, istouch)
   if istouch then return end
   local cx, cy = whereInGrid(x,y, dotsgrid)
   if cx and dl then
+    cx = math.min(math.max(dl.cx-1,cx),dl.cx+1)
+    cy = math.min(math.max(dl.cy-1,cy),dl.cy+1)
+    local cpx, cpy = dgx + (cx-1)*dgs, dgy + (cy-1)*dgs --Cell Pos
+    dl.x2 = cpx
+    dl.y2 = cpy
+    if dl.cx == cx and dl.cy == cy then dl = nil return end --It's on the same dot
     --Do new game line here !
     dl = nil
   elseif dl then
     dl = nil --Cancel
-    
   end
 end

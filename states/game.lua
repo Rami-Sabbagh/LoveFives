@@ -218,6 +218,52 @@ function love.mousemoved(x,y, dx,dy, istouch)
   end
 end
 
+local function checkNewBox(horiz,x,y)
+  if horiz then
+    --State 1
+    --[[
+    O--O
+    |  | <--
+    X==O
+    .  .
+    O..O
+    ]]
+    if y > 1 and dgdata[x][y-1].h and dgdata[x][y-1].v and x < dbw and dgdata[x+1][y-1].v then
+      
+    end
+    
+    --State 2
+    --[[
+    O..O
+    .  .
+    X==O
+    |  | <--
+    O--O
+    ]]
+    if y < dbh and dgdata[x][y+1].h and dgdata[x][y].v and x < dbw and dgdata[x+1][y].v then
+      
+    end
+  else
+    --State 1
+    --[[
+    O..X--O
+    .  :  | <--
+    O..O--O
+    ]]
+    if dgdata[x][y].h and x < dbw and dgdata[x+1][y].v and y < dbh and dgdata[x][y+1].h then
+      
+    end
+    
+    --State 2
+    --[[
+        O--X..O
+    --> |  :  .
+        O--O..O
+    ]]
+    if x > 1 and dgdata[x-1][y].v and dgdata[x-1][y].h and y < dbh and 
+  end
+end
+
 function love.mousereleased(x,y, b, istouch)
   if istouch then return end
   local cx, cy = whereInGrid(x,y, dotsgrid)

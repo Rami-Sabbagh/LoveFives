@@ -1,6 +1,6 @@
 love.graphics.setBackgroundColor(material.colors.background("dark"))
 
-local pnum = 4 --Number Of Players
+local pnum = 3 --Number Of Players
 local pturns = {} --The turns order of players
 local players = {} for i=1,pnum do table.insert(players,i) end
 for i=1, pnum do --Assign the random turns
@@ -17,13 +17,16 @@ local curturn = 1 --Current turn
 local pnames = { "Blue", "Pink", "Orange", "Grey" }
 local pletters = { "B", "P", "O", "G" }
 local pcolors = {}
-pcolors[1] = {39, 170, 225} --Blue
-pcolors[2] = {231,  74, 153} --Pink
+pcolors[1] = {39, 170, 225, 255} --Blue
+pcolors[2] = {231,  74, 153, 255} --Pink
 pcolors[3] = {material.colors.main("orange")} --Orange
 pcolors[4] = {material.colors.main("grey")} --Grey
 
-local dbw, dbh = 10, 10 --Dots Board Size
+local dbw, dbh = 5, 5 --Dots Board Size
 
+local maxlines = (dbw-1)*(dbh-1)*2 + (dbh-1) + (dbw-1)
+local linesNum = 0
+local pscores = {} for i=1, pnum do table.insert(pscores,0) end
 local gh = _Height/16
 _gtf = _gtf or love.graphics.newFont("/o-ten-one/handy-andy.otf",gh) --GameTurnFont
 
@@ -52,6 +55,8 @@ local dotWidth = gh/24
 local dotLineSize = gh/12
 local dotCLineSize = gh/10
 local dotsgrid = {dgx - dgs/2, dgy - dgs/2, dgw+dgs,dgh+dgs, dbw, dbh}  --The grid table
+
+local ripples = {}
 
 function love.resize(w,h)
   _Width, _Height = w,h
@@ -154,6 +159,11 @@ function love.draw()
     end
   end
   
+  --Draw the ripples
+  for k, r in ipairs(ripples) do
+    r:draw()
+  end
+  
   --Draw the current under creation line
   if dl then
     love.graphics.setColor(dl.col)
@@ -165,7 +175,10 @@ function love.draw()
 end
 
 function love.update(dt)
-  
+  --Update the ripples
+  for k, r in ipairs(ripples) do
+    r:update(dt)
+  end
 end
 
 local tid --TouchID
@@ -174,7 +187,7 @@ local tid --TouchID
 function love.touchpressed(id,x,y,dx,dy,p)
   if not tid then
     tid = id
-    love.mousepressed(id, x,y, 1, false)
+    love.mousepressed(x,y, 1, false)
   end
 end
 
@@ -229,7 +242,11 @@ local function checkNewBox(horiz,x,y)
     O..O
     ]]
     if y > 1 and dgdata[x][y-1].h and dgdata[x][y-1].v and x < dbw and dgdata[x+1][y-1].v then
-      
+      local pid = dgdata[x][y].h
+      pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-2)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
+      nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-2)*dgs + dgs/2, unpack(pcolors[pid]))
+      table.insert(ripples,nr)
     end
     
     --State 2
@@ -241,7 +258,11 @@ local function checkNewBox(horiz,x,y)
     O--O
     ]]
     if y < dbh and dgdata[x][y+1].h and dgdata[x][y].v and x < dbw and dgdata[x+1][y].v then
-      
+      local pid = dgdata[x][y].h
+      pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
+      nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
+      table.insert(ripples,nr)
     end
   else
     --State 1
@@ -251,7 +272,11 @@ local function checkNewBox(horiz,x,y)
     O..O--O
     ]]
     if dgdata[x][y].h and x < dbw and dgdata[x+1][y].v and y < dbh and dgdata[x][y+1].h then
-      
+      local pid = dgdata[x][y].v
+      pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
+      nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
+      table.insert(ripples,nr)
     end
     
     --State 2
@@ -260,7 +285,13 @@ local function checkNewBox(horiz,x,y)
     --> |  :  .
         O--O..O
     ]]
-    if x > 1 and dgdata[x-1][y].v and dgdata[x-1][y].h and y < dbh and 
+    if x > 1 and dgdata[x-1][y].v and dgdata[x-1][y].h and y < dbh and dgdata[x-1][y+1].h then
+      local pid = dgdata[x][y].v
+      pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local nr = material.ripple.box( dgx+(x-2)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
+      nr:start(dgx+(x-2)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
+      table.insert(ripples,nr)
+    end
   end
 end
 
@@ -280,24 +311,24 @@ function love.mousereleased(x,y, b, istouch)
     
       if dl.cx-cx > 0 then --To Left
         if dgdata[cx][cy].h then dl = nil return end --Trying to override an existing line
-        dgdata[cx][cy].h = pturns[curturn]
-        
+        dgdata[cx][cy].h = pturns[curturn] linesNum = linesNum + 1
+        checkNewBox(true,cx,cy)
       else --To Right
         if dgdata[dl.cx][cy].h then dl = nil return end --Trying to override an existing line
-        dgdata[dl.cx][cy].h = pturns[curturn]
-        
+        dgdata[dl.cx][cy].h = pturns[curturn] linesNum = linesNum + 1
+        checkNewBox(true,dl.cx,cy)
       end
       
     else --It's vertical
     
       if dl.cy-cy > 0 then --To Top
         if dgdata[cx][cy].v then dl = nil return end --Trying to override an existing line
-        dgdata[cx][cy].v = pturns[curturn]
-        
+        dgdata[cx][cy].v = pturns[curturn] linesNum = linesNum + 1
+        checkNewBox(false,cx,cy)
       else --To Bottom
         if dgdata[cx][dl.cy].v then dl = nil return end --Trying to override an existing line
-        dgdata[cx][dl.cy].v = pturns[curturn]
-        
+        dgdata[cx][dl.cy].v = pturns[curturn] linesNum = linesNum + 1
+        checkNewBox(false,cx,dl.cy)
       end
       
     end

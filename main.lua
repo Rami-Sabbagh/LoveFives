@@ -14,5 +14,5 @@ end
 
 function love.load()
   clearlove()
-  assert(love.filesystem.load("/states/game.lua"))()--splash.lua"))()
+  assert(love.filesystem.load("/states/splash.lua"))()
 end

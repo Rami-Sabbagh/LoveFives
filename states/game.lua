@@ -1,6 +1,12 @@
 love.graphics.setBackgroundColor(material.colors.background("dark"))
 
-local pnum = 3 --Number Of Players
+local tween = require("tween") --linear 230
+
+local winMsg
+local fade = {0}
+local fadeTween = tween.new(1,fade,{175},"linear")
+
+local pnum = 2 --Number Of Players
 local pturns = {} --The turns order of players
 local players = {} for i=1,pnum do table.insert(players,i) end
 for i=1, pnum do --Assign the random turns
@@ -22,7 +28,7 @@ pcolors[2] = {231,  74, 153, 255} --Pink
 pcolors[3] = {material.colors.main("orange")} --Orange
 pcolors[4] = {material.colors.main("grey")} --Grey
 
-local dbw, dbh = 5, 5 --Dots Board Size
+local dbw, dbh = 7, 7 --Dots Board Size
 
 local maxlines = (dbw-1)*(dbh-1)*2 + (dbh-1) + (dbw-1)
 local linesNum = 0
@@ -49,7 +55,7 @@ local dgx, dgy = _Width/2 - dgw/2, gty + gh*2
 local dgdata = {} --DotsGridData
 for x=1,dbw do dgdata[x] = {} for y=1, dbh do dgdata[x][y] = {} end end --Build the data table
 local dgcolor = {material.colors.main("blue-grey")}
-local dotsize = gh/16
+local dotsize = gh/8
 local dotnewsize = gh/14
 local dotWidth = gh/24
 local dotLineSize = gh/12
@@ -172,6 +178,26 @@ function love.draw()
     love.graphics.circle("fill",dl.x1,dl.y1,dotnewsize)
     love.graphics.circle("fill",dl.x2,dl.y2,dotnewsize)
   end
+  
+  if pscores[1] then
+    love.graphics.setColor(pcolors[1])
+    love.graphics.printf(pletters[1]..pscores[1], 0, 0, _Width, "left")
+  end
+  
+  if pscores[2] then
+    love.graphics.setColor(pcolors[2])
+    love.graphics.printf(pletters[2]..pscores[2], 0, 0, _Width, "right")
+  end
+  
+  if pscores[3] then
+    love.graphics.setColor(pcolors[3])
+    love.graphics.printf(pletters[3]..pscores[3], 0, _Height - gh, _Width, "left")
+  end
+  
+  if pscores[4] then
+    love.graphics.setColor(pcolors[4])
+    love.graphics.printf(pletters[4]..pscores[4], 0, _Height - gh, _Width, "right")
+  end
 end
 
 function love.update(dt)
@@ -232,6 +258,7 @@ function love.mousemoved(x,y, dx,dy, istouch)
 end
 
 local function checkNewBox(horiz,x,y)
+  local flag = false
   if horiz then
     --State 1
     --[[
@@ -244,9 +271,11 @@ local function checkNewBox(horiz,x,y)
     if y > 1 and dgdata[x][y-1].h and dgdata[x][y-1].v and x < dbw and dgdata[x+1][y-1].v then
       local pid = dgdata[x][y].h
       pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local dotsize = dotsize/2
       local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-2)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
       nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-2)*dgs + dgs/2, unpack(pcolors[pid]))
       table.insert(ripples,nr)
+      flag = true
     end
     
     --State 2
@@ -260,9 +289,11 @@ local function checkNewBox(horiz,x,y)
     if y < dbh and dgdata[x][y+1].h and dgdata[x][y].v and x < dbw and dgdata[x+1][y].v then
       local pid = dgdata[x][y].h
       pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local dotsize = dotsize/2
       local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
       nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
       table.insert(ripples,nr)
+      flag = true
     end
   else
     --State 1
@@ -274,9 +305,11 @@ local function checkNewBox(horiz,x,y)
     if dgdata[x][y].h and x < dbw and dgdata[x+1][y].v and y < dbh and dgdata[x][y+1].h then
       local pid = dgdata[x][y].v
       pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local dotsize = dotsize/2
       local nr = material.ripple.box( dgx+(x-1)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
       nr:start(dgx+(x-1)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
       table.insert(ripples,nr)
+      flag = true
     end
     
     --State 2
@@ -288,11 +321,14 @@ local function checkNewBox(horiz,x,y)
     if x > 1 and dgdata[x-1][y].v and dgdata[x-1][y].h and y < dbh and dgdata[x-1][y+1].h then
       local pid = dgdata[x][y].v
       pscores[pid] = pscores[pid] + 1 --Count the score !!
+      local dotsize = dotsize/2
       local nr = material.ripple.box( dgx+(x-2)*dgs + dotsize*3,dgy+(y-1)*dgs + dotsize*3, dgs - dotsize*6,dgs - dotsize*6, 0.25)
       nr:start(dgx+(x-2)*dgs + dgs/2,dgy+(y-1)*dgs + dgs/2, unpack(pcolors[pid]))
       table.insert(ripples,nr)
+      flag = true
     end
   end
+  return flag
 end
 
 function love.mousereleased(x,y, b, istouch)
@@ -307,16 +343,17 @@ function love.mousereleased(x,y, b, istouch)
     dl.y2 = cpy
     if dl.cx == cx and dl.cy == cy then dl = nil return end --It's on the same dot
     --Do new game line here !
+    local flag = false
     if dl.cy-cy == 0 then --It's horizental
     
       if dl.cx-cx > 0 then --To Left
         if dgdata[cx][cy].h then dl = nil return end --Trying to override an existing line
         dgdata[cx][cy].h = pturns[curturn] linesNum = linesNum + 1
-        checkNewBox(true,cx,cy)
+        flag = flag or checkNewBox(true,cx,cy)
       else --To Right
         if dgdata[dl.cx][cy].h then dl = nil return end --Trying to override an existing line
         dgdata[dl.cx][cy].h = pturns[curturn] linesNum = linesNum + 1
-        checkNewBox(true,dl.cx,cy)
+        flag = flag or checkNewBox(true,dl.cx,cy)
       end
       
     else --It's vertical
@@ -324,18 +361,20 @@ function love.mousereleased(x,y, b, istouch)
       if dl.cy-cy > 0 then --To Top
         if dgdata[cx][cy].v then dl = nil return end --Trying to override an existing line
         dgdata[cx][cy].v = pturns[curturn] linesNum = linesNum + 1
-        checkNewBox(false,cx,cy)
+        flag = flag or checkNewBox(false,cx,cy)
       else --To Bottom
         if dgdata[cx][dl.cy].v then dl = nil return end --Trying to override an existing line
         dgdata[cx][dl.cy].v = pturns[curturn] linesNum = linesNum + 1
-        checkNewBox(false,cx,dl.cy)
+        flag = flag or checkNewBox(false,cx,dl.cy)
       end
       
     end
     
-    curturn = curturn+1
-    if curturn > #pturns then curturn = 1 end
-    gtt = pnames[pturns[curturn]].."'s Turn"
+    if not flag then
+      curturn = curturn+1
+      if curturn > #pturns then curturn = 1 end
+      gtt = pnames[pturns[curturn]].."'s Turn"
+    end
     
     dl = nil
   elseif dl then
